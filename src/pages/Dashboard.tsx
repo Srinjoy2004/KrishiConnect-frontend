@@ -271,22 +271,30 @@ export default function Dashboard() {
                   <X className="h-6 w-6" />
                 </button>
               </div>
-              <nav className="p-4 space-y-1.5">
+              <nav className="p-4 space-y-1.5 overflow-y-auto flex-1">
                 <Link
-                  to="/dashboard"
+                  to="/dashboard/Realtimeprediction"
+                  className="flex items-center gap-3 p-3 text-gray-700 hover:bg-agri-50 hover:text-agri-600 rounded-lg font-medium"
+                  onClick={toggleMobileMenu}
+                >
+                  <Activity className="h-5 w-5 text-agri-500" />
+                  <span>Realtimeprediction</span>
+                </Link>
+                <Link
+                  to="/dashboard/DiseasePrediction"
                   className="flex items-center gap-3 p-3 text-gray-700 hover:bg-agri-50 hover:text-agri-600 rounded-lg font-medium"
                   onClick={toggleMobileMenu}
                 >
                   <LayoutDashboard className="h-5 w-5 text-agri-500" />
-                  <span>Dashboard</span>
+                  <span>DiseasePrediction</span>
                 </Link>
                 <Link
-                  to="/dashboard/SoilAnalysis"
+                  to="/dashboard/CropPrediction"
                   className="flex items-center gap-3 p-3 text-gray-700 hover:bg-agri-50 hover:text-agri-600 rounded-lg font-medium"
                   onClick={toggleMobileMenu}
                 >
                   <Leaf className="h-5 w-5 text-agri-500" />
-                  <span>Soil Analysis</span>
+                  <span>Crop Prediction</span>
                 </Link>
                 <Link
                   to="/dashboard/Weather"
@@ -297,7 +305,7 @@ export default function Dashboard() {
                   <span>Weather Forecast</span>
                 </Link>
                 <Link
-                  to="/dashboard/chatbot"
+                  to="/dashboard/AIAssistant"
                   className="flex items-center gap-3 p-3 text-gray-700 hover:bg-agri-50 hover:text-agri-600 rounded-lg font-medium"
                   onClick={toggleMobileMenu}
                 >
@@ -305,21 +313,25 @@ export default function Dashboard() {
                   <span>AI Assistant</span>
                 </Link>
                 <Link
-                  to="/dashboard/disease-prediction"
+                  to="/dashboard/CropProductionPrediction"
                   className="flex items-center gap-3 p-3 text-gray-700 hover:bg-agri-50 hover:text-agri-600 rounded-lg font-medium"
                   onClick={toggleMobileMenu}
                 >
                   <BarChart2 className="h-5 w-5 text-agri-500" />
-                  <span>Disease Prediction</span>
+                  <span>Crop Production Prediction</span>
                 </Link>
                 <Link
-                  to="/dashboard/community"
+                  to="/dashboard/Community"
                   className="flex items-center gap-3 p-3 text-gray-700 hover:bg-agri-50 hover:text-agri-600 rounded-lg font-medium"
                   onClick={toggleMobileMenu}
                 >
                   <Users className="h-5 w-5 text-agri-500" />
                   <span>Community</span>
                 </Link>
+              </nav>
+              
+              {/* Mobile Menu Footer - Settings */}
+              <div className="p-4 border-t border-gray-200">
                 <Link
                   to="/dashboard/settings"
                   className="flex items-center gap-3 p-3 text-gray-700 hover:bg-agri-50 hover:text-agri-600 rounded-lg font-medium"
@@ -328,7 +340,7 @@ export default function Dashboard() {
                   <Settings className="h-5 w-5 text-agri-500" />
                   <span>Settings</span>
                 </Link>
-              </nav>
+              </div>
             </div>
 
             {/* Close when clicking outside */}
