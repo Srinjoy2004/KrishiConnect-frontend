@@ -65,6 +65,11 @@ const Index = () => {
   // Rainfall State
   const [rainfall, setRainfall] = useState('0');
 
+  // Microloans State
+  const [microloans, setMicroloans] = useState([]);
+  const [isGeneratingMicroloans, setIsGeneratingMicroloans] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
   // Data for dropdowns
   const indianStates = [
     'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -190,6 +195,8 @@ const Index = () => {
     setCropPrediction(null);
     setIdealParameters(null);
     setAlerts([]);
+    setMicroloans([]);
+    setCurrentSlide(0);
     
     fetchRealTimeData();
   };
@@ -208,9 +215,9 @@ const Index = () => {
       const latestEntry = data.feeds[data.feeds.length - 1];
 
       const sensorData = {
-        nitrogen: (parseFloat(latestEntry.field5) * 1.95).toFixed(2),
-        phosphorus: (parseFloat(latestEntry.field6) * 1.95).toFixed(2),
-        potassium: (parseFloat(latestEntry.field7) * 1.95).toFixed(2),
+        nitrogen: (parseFloat(latestEntry.field5) ).toFixed(2),
+        phosphorus: (parseFloat(latestEntry.field6) ).toFixed(2),
+        potassium: (parseFloat(latestEntry.field7) ).toFixed(2),
         ph: parseFloat(latestEntry.field8).toFixed(1),
         humidity: parseFloat(latestEntry.field2).toFixed(0),
         soilMoisture: parseFloat(latestEntry.field4).toFixed(0),
@@ -346,6 +353,80 @@ const Index = () => {
     }
   };
 
+  // Fetch loan recommendations from the new API
+  const fetchLoanRecommendations = async (earning: number, location: string, crop: string) => {
+    const apiUrl = 'https://loan-recommender-endpoint.onrender.com/get-loans';
+    
+    const requestBody = {
+      earning: earning,
+      location: location.toLowerCase(),
+      crop: crop.toLowerCase()
+    };
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch loan recommendations: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`Loan Recommendations for ${crop} in ${location}:`, data);
+      
+      // Transform API response to match microloans format
+      const transformedLoans = data.map(loan => ({
+        scheme: loan.loan_name,
+        institution: loan.bank,
+        amount: loan.amount,
+        percentage: loan.chance,
+        link: loan.link,
+        notes: `Suitable for ${crop} farming in ${location}`
+      }));
+      
+      setMicroloans(transformedLoans);
+      return transformedLoans;
+    } catch (error) {
+      console.error('Error fetching loan recommendations:', error);
+      return [];
+    }
+  };
+
+  // Generate microloans (trigger API call)
+  const generateMicroloans = async () => {
+    if (!cropPrediction || !idealCrop || !manualInput.state) {
+      alert('Please complete crop prediction first to generate loan recommendations.');
+      return;
+    }
+
+    setIsGeneratingMicroloans(true);
+    await fetchLoanRecommendations(
+      parseInt(cropPrediction.estimatedIncome),
+      manualInput.state,
+      idealCrop.name
+    );
+    setIsGeneratingMicroloans(false);
+    setCurrentSlide(0);
+  };
+
+  // Slider navigation functions
+  const prevSlide = () => {
+    setCurrentSlide(prev => (prev === 0 ? microloans.length - 1 : prev - 1));
+  };
+
+  const nextSlide = () => {
+    setCurrentSlide(prev => (prev === microloans.length - 1 ? 0 : prev + 1));
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+  };
+
   // Generate ideal crop suggestion using crop prediction API
   const generateIdealCrop = async () => {
     setIsGeneratingIdealCrop(true);
@@ -387,10 +468,19 @@ const Index = () => {
       const predictedProduction = await fetchPredictedProduction(topCrop.name);
       console.log(`Predicted Production for ${topCrop.name}: ${predictedProduction} tons`);
 
+      // Calculate new earnings
+      const randomMultiplier = Math.floor(Math.random() * (4000 - 3000 + 1)) + 3000;
+      console.log(`Random Multiplier for Earnings: ${randomMultiplier}`);
+      const estimatedEarnings = (predictedProduction * randomMultiplier).toFixed(0);
+      console.log(`Estimated Earnings for ${topCrop.name}: ₹${estimatedEarnings}`);
+
+      // Fetch loan recommendations
+      await fetchLoanRecommendations(parseInt(estimatedEarnings), manualInput.state, topCrop.name);
+
       // Fetch moisture prediction
       const moistureAdvice = await fetchMoisturePrediction(topCrop.name);
 
-      // Fetch fertilizer advice after moisture prediction
+      // Fetch fertilizer advice
       const fertilizerAdvice = await fetchFertilizerAdvice(topCrop.name);
 
       setIdealCrop({
@@ -403,7 +493,7 @@ const Index = () => {
 
       const prediction = {
         expectedProduce: predictedProduction.toFixed(1),
-        estimatedIncome: (Math.random() * 300000 + 200000).toFixed(0)
+        estimatedIncome: estimatedEarnings
       };
       setCropPrediction(prediction);
 
@@ -470,7 +560,6 @@ const Index = () => {
     setIsGeneratingAlerts(true);
     await new Promise(resolve => setTimeout(resolve, 2500));
     
-    // Initialize alerts without setting Irrigation Status or Fertilizer Suggestion here, as they will be set in generateIdealCrop
     const alertsData = [
       {
         type: 'Irrigation Advice',
@@ -943,6 +1032,149 @@ const Index = () => {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Suggested Microloans Section */}
+        {cropPrediction && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-xl font-bold text-gray-800">Suggested Krishi Microloans</CardTitle>
+              {/* <Button 
+                onClick={generateMicroloans} 
+                disabled={isGeneratingMicroloans}
+                className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700"
+              >
+                {isGeneratingMicroloans ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Generate Loans</span>
+                  </>
+                )}
+              </Button> */}
+            </CardHeader>
+            <CardContent>
+              {isGeneratingMicroloans ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto mb-2" />
+                  <p className="text-gray-600">Finding best loan options for you...</p>
+                </div>
+              ) : microloans.length > 0 ? (
+                <div className="space-y-4">
+                  {/* Slider Container */}
+                  <div className="relative overflow-hidden">
+                    <div 
+                      className="flex transition-transform duration-500 ease-in-out"
+                      style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                    >
+                      {microloans.map((loan, index) => (
+                        <div key={index} className="w-full flex-shrink-0 px-2">
+                          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg p-6 border border-indigo-200">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div>
+                                  <h4 className="text-sm font-medium text-indigo-800 mb-1">Scheme/Loan Type</h4>
+                                  <p className="text-lg font-bold text-indigo-900">{loan.scheme}</p>
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-medium text-indigo-800 mb-1">Bank/Institution</h4>
+                                  <p className="text-md font-semibold text-indigo-700">{loan.institution}</p>
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-medium text-indigo-800 mb-1">Amount (Approx)</h4>
+                                  <p className="text-lg font-bold text-green-600">{loan.amount}</p>
+                                </div>
+                              </div>
+                              <div className="space-y-3">
+                                <div>
+                                  <h4 className="text-sm font-medium text-indigo-800 mb-1">Approval Chance</h4>
+                                  <div className="flex items-center space-x-2">
+                                    <p className="text-lg font-bold text-orange-600">{loan.percentage}</p>
+                                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                      <div 
+                                        className="bg-orange-500 h-2 rounded-full transition-all duration-1000"
+                                        style={{ width: loan.percentage }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-medium text-indigo-800 mb-1">Link to Access</h4>
+                                  <a 
+                                    href={loan.link} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline text-sm"
+                                  >
+                                    Apply Online →
+                                  </a>
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-medium text-indigo-800 mb-1">Notes</h4>
+                                  <p className="text-sm text-gray-700">{loan.notes}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Navigation Controls */}
+                  <div className="flex items-center justify-between">
+                    <Button 
+                      onClick={prevSlide}
+                      variant="outline"
+                      size="sm"
+                      className="text-indigo-600 border-indigo-300 hover:bg-indigo-50"
+                    >
+                      ← Previous
+                    </Button>
+                    
+                    {/* Dots Indicator */}
+                    <div className="flex space-x-2">
+                      {microloans.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => goToSlide(index)}
+                          className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                            index === currentSlide 
+                              ? 'bg-indigo-600 scale-110' 
+                              : 'bg-indigo-300 hover:bg-indigo-400'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    
+                    <Button 
+                      onClick={nextSlide}
+                      variant="outline"
+                      size="sm"
+                      className="text-indigo-600 border-indigo-300 hover:bg-indigo-50"
+                    >
+                      Next →
+                    </Button>
+                  </div>
+
+                  {/* Loan Counter */}
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">
+                      Showing {currentSlide + 1} of {microloans.length} loan options
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">Click "Generate Loans" to see personalized microloan recommendations</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Smart Alerts & Suggestions */}
