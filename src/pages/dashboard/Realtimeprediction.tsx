@@ -105,8 +105,8 @@ const Index = () => {
     'West Bengal': ['Kolkata', 'Howrah', 'Durgapur', 'Asansol', 'Siliguri', 'Malda', 'Bardhaman', 'Baharampur', 'Habra', 'Kharagpur']
   };
 
-  const seasons = ['Kharif', 'Rabi', 'Zaid'];
-  const years = ['2024', '2023', '2022', '2021', '2020'];
+  const seasons = ['Kharif', 'Rabi', 'Zaid', 'All Season'];
+  const years = ['2024', '2025'];
 
   // Weather forecast function
   const getWeatherForecast = async (city: string, apiKey: string) => {
@@ -168,9 +168,7 @@ const Index = () => {
         phosphorus: data.details.P,
         potassium: data.details.K,
         ph: data.details.pH,
-        soilMoisture: data.details.soil_moisture,
-        humidity: data.details.humidity || Math.floor(Math.random() * 15) + 70,
-        soilTemperature: data.details.soilTemperature || Math.floor(Math.random() * 8) + 22
+        soilMoisture: data.details.soil_moisture
       });
     } catch (error) {
       console.error('Error fetching ideal parameters:', error);
@@ -409,18 +407,12 @@ const Index = () => {
       };
       setCropPrediction(prediction);
 
-      // Update alerts with moisture and fertilizer advice
+      // Update alerts with irrigation advice combining rainfall and moisture
       setAlerts([
         {
-          type: 'Rainfall Alert',
-          message: 'Moderate rainfall expected in 2-3 days. Prepare irrigation systems accordingly.',
+          type: 'Irrigation Advice',
+          message: `Moderate rainfall expected in 2-3 days. ${moistureAdvice}`,
           severity: 'medium',
-          icon: '☔'
-        },
-        {
-          type: 'Irrigation Status',
-          message: moistureAdvice,
-          severity: 'low',
           icon: '💧'
         },
         {
@@ -481,10 +473,10 @@ const Index = () => {
     // Initialize alerts without setting Irrigation Status or Fertilizer Suggestion here, as they will be set in generateIdealCrop
     const alertsData = [
       {
-        type: 'Rainfall Alert',
+        type: 'Irrigation Advice',
         message: 'Moderate rainfall expected in 2-3 days. Prepare irrigation systems accordingly.',
         severity: 'medium',
-        icon: '☔'
+        icon: '💧'
       }
     ];
     
@@ -752,25 +744,9 @@ const Index = () => {
                       <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                         <div className="flex items-center space-x-2 mb-2">
                           <Droplet className="w-5 h-5 text-green-500" />
-                          <span className="text-sm font-medium text-green-800">Ideal Humidity</span>
-                        </div>
-                        <p className="text-2xl font-bold text-green-600">{idealParameters.humidity}%</p>
-                      </div>
-
-                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Droplet className="w-5 h-5 text-green-500" />
                           <span className="text-sm font-medium text-green-800">Ideal Soil Moisture</span>
                         </div>
                         <p className="text-2xl font-bold text-green-600">{idealParameters.soilMoisture}%</p>
-                      </div>
-
-                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Thermometer className="w-5 h-5 text-green-500" />
-                          <span className="text-sm font-medium text-green-800">Ideal Soil Temp</span>
-                        </div>
-                        <p className="text-2xl font-bold text-green-600">{idealParameters.soilTemperature}°C</p>
                       </div>
                     </div>
                   </div>
@@ -979,7 +955,7 @@ const Index = () => {
               )}
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {alerts.map((alert, index) => (
                   <div 
                     key={index}
